@@ -1,0 +1,25 @@
+# 📱 IG 輪播貼文生成器
+
+輸入主題，AI 一鍵生成整組 Instagram 輪播貼文：**封面 Hook ＋ 內容卡 ＋ CTA 卡**，直接渲染成 1080×1350（4:5）字卡圖片，下載即可發文。
+
+🔗 線上使用：https://elliehuang37-jpg.github.io/ig-carousel-generator/
+
+## 功能
+
+- ✨ **AI 文案生成**：輸入主題／受眾／語氣，自動產出封面 Hook、逐張重點內容、CTA，外加貼文 Caption 與 15-20 個 Hashtags
+- 🎨 **5 種視覺主題**：奶油杏、莫蘭迪粉、黑金質感、霧霾藍、鼠尾草綠，一鍵切換全組重繪
+- 🖼️ **1080×1350 字卡渲染**：Canvas 即時繪製 IG 官方建議尺寸，含頁碼、帳號、滑動提示、追蹤按鈕
+- ✏️ **逐張編輯**：點卡片即可改標題與內文，立即重繪
+- 📦 **一鍵下載**：單張 PNG 或整組 ZIP（含 caption.txt 文案檔）
+- 🧪 **範例模式**：沒有 API Key 也能先載入範例看效果
+
+## 使用方式
+
+1. 點右上角「🔑 API Key」，貼上你的 Anthropic API Key（至 [console.anthropic.com](https://console.anthropic.com) 建立；只存在瀏覽器 localStorage）
+2. 填寫貼文主題、受眾、語氣、張數、CTA 目標
+3. 按「✨ 生成輪播貼文」
+4. 點卡片微調文字 → 「📦 全部下載」→ 上傳 IG 發文
+
+## 技術
+
+純前端單一 HTML，無後端、無外部依賴。瀏覽器直連 Anthropic API，Canvas 繪製字卡，內建極簡 ZIP 打包器。

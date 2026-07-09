@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG 輪播貼文生成器</title>
+<style>
+:root{
+  --bg:#0f1117; --panel:#181b24; --panel2:#1f2330; --border:#2a2f3f;
+  --text:#e8eaf2; --muted:#8b91a5; --accent:#e1548a; --accent2:#f0a05e;
+  --ok:#4cc38a; --err:#ef6a6a; --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;min-height:100vh}
+a{color:var(--accent)}
+header{display:flex;align-items:center;gap:14px;padding:18px 28px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+header h1{font-size:20px;font-weight:900;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header .sub{font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+select,input,textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;width:100%}
+select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:90px;line-height:1.6}
+button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;font-family:inherit;transition:.15s}
+.btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent)}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+main{display:grid;grid-template-columns:360px 1fr;gap:24px;padding:24px 28px;max-width:1500px;margin:0 auto}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.themes{display:flex;gap:10px;flex-wrap:wrap}
+.theme-chip{width:56px;height:56px;border-radius:12px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}
+.theme-chip.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(225,84,138,.3)}
+.theme-chip span{position:absolute;bottom:2px;left:0;right:0;font-size:9px;text-align:center;font-weight:700}
+#genBtn{width:100%;padding:14px;font-size:16px;margin-top:4px}
+.hint{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
+#status{font-size:13px;margin-top:12px;min-height:20px}
+#status.err{color:var(--err)} #status.ok{color:var(--ok)} #status.busy{color:var(--accent2)}
+/* output */
+#output{display:none}
+.out-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.cards-grid{display:flex;gap:16px;flex-wrap:wrap}
+.card-item{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px;width:262px}
+.card-item canvas{width:240px;height:300px;border-radius:8px;display:block;cursor:pointer}
+.card-item canvas:hover{outline:2px solid var(--accent)}
+.card-actions{display:flex;gap:6px;margin-top:8px;justify-content:space-between;align-items:center}
+.card-tag{font-size:11px;color:var(--muted);font-weight:700}
+.copy-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:20px}
+.copy-box h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.copy-box pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.8;color:var(--text);background:var(--panel2);border-radius:10px;padding:14px;max-height:260px;overflow-y:auto}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:min(520px,100%);max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:16px;font-size:16px}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.empty{color:var(--muted);text-align:center;padding:80px 20px;font-size:15px;line-height:2}
+.empty .big{font-size:44px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📱 IG 輪播貼文生成器</h1>
+  <span class="sub">輸入主題 → AI 生成文案 → 1080×1350 字卡直接下載發文</span>
+  <div class="spacer"></div>
+  <select id="modelSel" style="width:auto">
+    <option value="claude-haiku-4-5-20251001">Haiku（快速）</option>
+    <option value="claude-sonnet-4-5-20251022" selected>Sonnet（推薦）</option>
+  </select>
+  <button class="btn-ghost" id="apiBtn" onclick="openApiModal()">🔑 API Key</button>
+</header>
+
+<main>
+  <!-- 左側：輸入 -->
+  <div class="panel">
+    <div class="field">
+      <label>貼文主題／想講的內容 *</label>
+      <textarea id="topicInput" placeholder="例：5 個讓 IG 貼文互動率翻倍的技巧，目標是吸引小編和個人品牌經營者追蹤"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>目標受眾</label>
+        <input id="audienceInput" placeholder="例：25-40 歲女性上班族">
+      </div>
+      <div class="field">
+        <label>IG 帳號（顯示在卡片上）</label>
+        <input id="handleInput" placeholder="yourbrand" value="">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>語氣風格</label>
+        <select id="toneSel">
+          <option value="親切口語，像朋友聊天">親切口語</option>
+          <option value="專業可信，乾貨滿滿">專業乾貨</option>
+          <option value="幽默有梗，輕鬆吸睛">幽默有梗</option>
+          <option value="溫暖療癒，感性共鳴">溫暖療癒</option>
+          <option value="直接犀利，觀點鮮明">犀利觀點</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>總張數（含封面+CTA）</label>
+        <select id="countSel">
+          <option value="5">5 張</option>
+          <option value="6">6 張</option>
+          <option value="7" selected>7 張</option>
+          <option value="8">8 張</option>
+          <option value="9">9 張</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>CTA 行動目標</label>
+      <select id="ctaSel">
+        <option value="追蹤帳號看更多內容">追蹤帳號</option>
+        <option value="收藏這篇貼文方便回看">收藏貼文</option>
+        <option value="留言分享自己的想法">引導留言</option>
+        <option value="私訊索取更多資訊">引導私訊</option>
+        <option value="點擊個人檔案連結">導流連結</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>視覺主題</label>
+      <div class="themes" id="themePicker"></div>
+    </div>
+    <button class="btn-primary" id="genBtn" onclick="generate()">✨ 生成輪播貼文</button>
+    <div id="status"></div>
+    <div class="hint">
+      沒有 API Key？先按 <a href="javascript:loadSample()">載入範例</a> 看效果。<br>
+      卡片尺寸 1080×1350（IG 4:5），點卡片即可編輯文字。
+    </div>
+  </div>
+
+  <!-- 右側：輸出 -->
+  <div>
+    <div class="empty" id="emptyState">
+      <div class="big">🎠</div>
+      填好左側資訊，一鍵生成整組輪播字卡<br>
+      封面 Hook ＋ 內容卡 ＋ CTA 卡，直接下載發 IG
+    </div>
+    <div id="output">
+      <div class="out-toolbar">
+        <button class="btn-primary" onclick="downloadAll()">📦 全部下載（ZIP）</button>
+        <button class="btn-ghost" onclick="copyText('captionPre',this)">📋 複製貼文文案</button>
+        <button class="btn-ghost" onclick="copyText('hashtagPre',this)">#️⃣ 複製 Hashtags</button>
+        <span class="sub" id="cardCount" style="color:var(--muted);font-size:13px"></span>
+      </div>
+      <div class="cards-grid" id="cardsGrid"></div>
+      <div class="copy-box">
+        <h3>📝 貼文文案（Caption）</h3>
+        <pre id="captionPre"></pre>
+      </div>
+      <div class="copy-box">
+        <h3>#️⃣ Hashtags</h3>
+        <pre id="hashtagPre"></pre>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- API Key modal -->
+<div class="modal-bg" id="apiModal">
+  <div class="modal">
+    <h3>🔑 設定 Anthropic API Key</h3>
+    <div class="field">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px">
+    </div>
+    <div class="hint">至 <strong>console.anthropic.com</strong> 建立 Key，只存在你瀏覽器的 localStorage，不會上傳到任何伺服器。</div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeApiModal()">取消</button>
+      <button class="btn-primary" onclick="saveApiKey()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯卡片 modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3 id="editTitle">✏️ 編輯卡片</h3>
+    <div class="field">
+      <label>標題</label>
+      <textarea id="editCardTitle" style="min-height:60px"></textarea>
+    </div>
+    <div class="field">
+      <label>內文（空行分段）</label>
+      <textarea id="editCardBody" style="min-height:140px"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeEditModal()">取消</button>
+      <button class="btn-primary" onclick="saveCardEdit()">儲存並重繪</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 狀態 ================= */
+let apiKey = localStorage.getItem('aak') || '';
+let cards = [];            // [{type:'COVER'|'CONTENT'|'CTA', title, body}]
+let caption = '', hashtags = '';
+let editingIdx = -1;
+
+/* ================= 視覺主題 ================= */
+const THEMES = [
+  {id:'cream',  name:'奶油杏', bg:['#F7F1E8','#F2E6D8'], text:'#3D3229', sub:'#8A7A6A', accent:'#C8794F', accentText:'#FFFFFF', deco:'rgba(200,121,79,.12)'},
+  {id:'pink',   name:'莫蘭迪粉', bg:['#F6E8E8','#EED9DC'], text:'#4A3338', sub:'#9A7E84', accent:'#C96B7F', accentText:'#FFFFFF', deco:'rgba(201,107,127,.13)'},
+  {id:'dark',   name:'黑金質感', bg:['#191920','#101016'], text:'#F2EDE2', sub:'#9A937F', accent:'#D4AF6A', accentText:'#1A1A20', deco:'rgba(212,175,106,.10)'},
+  {id:'blue',   name:'霧霾藍', bg:['#E9F0F5','#DCE7EF'], text:'#25333F', sub:'#6C8296', accent:'#4F7DA0', accentText:'#FFFFFF', deco:'rgba(79,125,160,.12)'},
+  {id:'green',  name:'鼠尾草綠', bg:['#ECF1E8','#DFE8D8'], text:'#2E3A2A', sub:'#7C8B72', accent:'#6E8F5E', accentText:'#FFFFFF', deco:'rgba(110,143,94,.13)'}
+];
+let themeId = localStorage.getItem('igc_theme') || 'cream';
+
+function renderThemePicker(){
+  const el = document.getElementById('themePicker');
+  el.innerHTML = '';
+  THEMES.forEach(t=>{
+    const d = document.createElement('div');
+    d.className = 'theme-chip' + (t.id===themeId?' sel':'');
+    d.style.background = `linear-gradient(135deg,${t.bg[0]},${t.bg[1]})`;
+    d.title = t.name;
+    d.innerHTML = `<span style="color:${t.sub}">${t.name}</span>`;
+    d.onclick = ()=>{ themeId=t.id; localStorage.setItem('igc_theme',themeId); renderThemePicker(); if(cards.length) renderAllCards(); };
+    el.appendChild(d);
+  });
+}
+function curTheme(){ return THEMES.find(t=>t.id===themeId) || THEMES[0]; }
+
+/* ================= API Key ================= */
+function openApiModal(){ document.getElementById('apiModal').classList.add('open'); document.getElementById('apiKeyInput').value = apiKey; setTimeout(()=>document.getElementById('apiKeyInput').focus(),80); }
+function closeApiModal(){ document.getElementById('apiModal').classList.remove('open'); }
+function saveApiKey(){
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('aak', apiKey);
+  updateApiBtn(); closeApiModal();
+}
+function updateApiBtn(){ document.getElementById('apiBtn').textContent = apiKey ? '🔑 API Key ✓' : '🔑 API Key'; }
+
+/* ================= Claude 呼叫 ================= */
+async function callClaude(prompt, maxTokens){
+  const model = document.getElementById('modelSel').value;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'content-type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({ model, max_tokens: maxTokens||3000, messages:[{role:'user', content: prompt}] })
+  });
+  if(!res.ok){
+    const e = await res.json().catch(()=>({}));
+    throw new Error(e.error && e.error.message ? e.error.message : ('HTTP ' + res.status));
+  }
+  const data = await res.json();
+  return data.content.map(b=>b.text||'').join('');
+}
+
+function makePrompt(){
+  const topic = document.getElementById('topicInput').value.trim();
+  const audience = document.getElementById('audienceInput').value.trim() || '一般 IG 使用者';
+  const tone = document.getElementById('toneSel').value;
+  const total = parseInt(document.getElementById('countSel').value);
+  const cta = document.getElementById('ctaSel').value;
+  const contentN = total - 2;
+  return `你是台灣頂尖的 Instagram 內容操盤手，擅長寫出高互動、高收藏的輪播貼文（繁體中文、台灣用語）。
+
+主題：${topic}
+目標受眾：${audience}
+語氣：${tone}
+CTA 目標：${cta}
+輪播結構：共 ${total} 張 = 1 張封面 + ${contentN} 張內容卡 + 1 張 CTA 卡
+
+寫作要求：
+- 封面主標 ≤12 字，必須是強 hook（痛點、數字、反差、好奇缺口），副標 ≤20 字補充價值
+- 內容卡：每張講一個重點。標題 ≤10 字；內文 2~3 句短句、總長 40~70 字，段落之間用「//」分隔
+- CTA 卡：呼應「${cta}」，標題 ≤10 字，內文 ≤50 字
+- Caption：120~180 字，開頭第一句要 hook，適度 emoji 與分行，結尾引導互動
+- Hashtags：15~20 個，繁中為主、混 3~5 個英文，用空格分隔
+
+嚴格依照以下格式輸出，不要輸出任何其他說明文字：
+===CAPTION===
+（貼文文案）
+===HASHTAGS===
+#標籤1 #標籤2 ...
+===CARDS===
+COVER|主標|副標
+CONTENT|標題|內文（句子間用//分隔）
+（共 ${contentN} 行 CONTENT）
+CTA|標題|內文`;
+}
+
+function parseResult(raw){
+  const grab = (name)=>{
+    const m = raw.match(new RegExp('===' + name + '===\\s*([\\s\\S]*?)(?====|$)'));
+    return m ? m[1].trim() : '';
+  };
+  caption = grab('CAPTION');
+  hashtags = grab('HASHTAGS');
+  const cardLines = grab('CARDS').split('\n').map(l=>l.trim()).filter(l=>l.includes('|'));
+  cards = cardLines.map(l=>{
+    const p = l.split('|');
+    const type = p[0].trim().toUpperCase();
+    return {
+      type: (type==='COVER'||type==='CTA') ? type : 'CONTENT',
+      title: (p[1]||'').trim(),
+      body: (p.slice(2).join('|')||'').trim().replace(/\/\//g,'\n')
+    };
+  });
+  if(!cards.length) throw new Error('AI 回傳格式解析失敗，請再試一次');
+}
+
+/* ================= 生成流程 ================= */
+function setStatus(msg, cls){ const s=document.getElementById('status'); s.textContent=msg; s.className=cls||''; }
+
+async function generate(){
+  const topic = document.getElementById('topicInput').value.trim();
+  if(!topic){ setStatus('請先輸入貼文主題', 'err'); return; }
+  if(!apiKey){ openApiModal(); return; }
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  setStatus('AI 生成中…約需 10~30 秒', 'busy');
+  try{
+    const raw = await callClaude(makePrompt());
+    parseResult(raw);
+    renderOutput();
+    setStatus('✅ 生成完成！點卡片可編輯文字', 'ok');
+  }catch(e){
+    setStatus('❌ ' + e.message, 'err');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ================= 範例資料 ================= */
+function loadSample(){
+  caption = '你的貼文沒人互動，真的不是內容不好 😮‍💨\n\n是你少做了這 5 件事。\n我把自己操盤 3 年的心得整理成這篇，每一招都能今天就用上。\n\n👉 右滑看完整 5 個技巧\n💬 你最常卡在哪一步？留言告訴我';
+  hashtags = '#IG經營 #小編日常 #社群經營 #自媒體 #個人品牌 #內容行銷 #IG成長 #貼文技巧 #流量密碼 #社群行銷 #創作者 #斜槓 #行銷筆記 #instagramtips #contentcreator #socialmedia #marketing';
+  cards = [
+    {type:'COVER', title:'貼文沒人看？\n少做了這5件事', body:'3 年操盤心得一次公開'},
+    {type:'CONTENT', title:'① 前3秒定生死', body:'封面就是廣告看板。\n用數字、痛點或反差開場，滑過去的人才會停下來。'},
+    {type:'CONTENT', title:'② 一張卡一重點', body:'資訊塞太多＝沒有重點。\n每張卡只講一件事，看完才記得住。'},
+    {type:'CONTENT', title:'③ 說人話', body:'把「提升效率」改成「每天省 1 小時」。\n具體的數字永遠比形容詞有力。'},
+    {type:'CONTENT', title:'④ 引導收藏', body:'收藏權重比按讚高。\n乾貨型內容記得提醒：先收藏，之後才找得到。'},
+    {type:'CONTENT', title:'⑤ 黃金1小時回覆', body:'發文後 1 小時是演算法觀察期。\n留言秒回，互動率直接往上疊。'},
+    {type:'CTA', title:'覺得有用嗎？', body:'追蹤看每週更新的社群乾貨\n收藏這篇，下次發文前照著檢查'}
+  ];
+  renderOutput();
+  setStatus('已載入範例（未使用 API）', 'ok');
+}
+
+/* ================= Canvas 渲染 ================= */
+const W = 1080, H = 1350;
+const FONT = '"Noto Sans TC","Microsoft JhengHei",sans-serif';
+
+function wrapText(ctx, text, maxWidth){
+  const out = [];
+  for(const seg of String(text).split('\n')){
+    if(!seg){ out.push(''); continue; }
+    let line = '';
+    for(const ch of seg){
+      const t = line + ch;
+      if(ctx.measureText(t).width > maxWidth && line){ out.push(line); line = ch; }
+      else line = t;
+    }
+    if(line) out.push(line);
+  }
+  return out;
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawBase(ctx, th){
+  const g = ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]);
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  // 裝飾圓
+  ctx.fillStyle = th.deco;
+  ctx.beginPath(); ctx.arc(W-80, 140, 220, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(60, H-120, 280, 0, Math.PI*2); ctx.fill();
+}
+
+function handleText(){
+  const h = document.getElementById('handleInput').value.trim();
+  return h ? '@' + h.replace(/^@/,'') : '';
+}
+
+function drawCard(canvas, card, idx, total){
+  const th = curTheme();
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  drawBase(ctx, th);
+  const handle = handleText();
+
+  if(card.type === 'COVER'){
+    // 帳號（上中）
+    if(handle){
+      ctx.fillStyle = th.sub; ctx.font = `700 34px ${FONT}`;
+      ctx.textAlign = 'center'; ctx.fillText(handle, W/2, 130);
+    }
+    // 主標
+    ctx.fillStyle = th.text; ctx.font = `900 100px ${FONT}`; ctx.textAlign = 'center';
+    const lines = wrapText(ctx, card.title, 900);
+    const lh = 140;
+    let y = H/2 - (lines.length-1)*lh/2 - 40;
+    lines.forEach(l=>{ ctx.fillText(l, W/2, y); y += lh; });
+    // 強調底線
+    ctx.fillStyle = th.accent;
+    roundRect(ctx, W/2-90, y-90+70, 180, 12, 6); ctx.fill();
+    // 副標
+    if(card.body){
+      ctx.fillStyle = th.sub; ctx.font = `500 46px ${FONT}`;
+      wrapText(ctx, card.body, 880).forEach((l,i)=>ctx.fillText(l, W/2, y+80+i*70));
+    }
+    // 底部滑動提示
+    ctx.fillStyle = th.accent;
+    roundRect(ctx, W/2-160, H-170, 320, 84, 42); ctx.fill();
+    ctx.fillStyle = th.accentText; ctx.font = `700 38px ${FONT}`;
+    ctx.fillText('往左滑 →', W/2, H-114);
+
+  } else if(card.type === 'CTA'){
+    if(handle){
+      ctx.fillStyle = th.sub; ctx.font = `700 34px ${FONT}`;
+      ctx.textAlign = 'center'; ctx.fillText(handle, W/2, 130);
+    }
+    ctx.fillStyle = th.text; ctx.font = `900 88px ${FONT}`; ctx.textAlign = 'center';
+    const tl = wrapText(ctx, card.title, 900);
+    let y = 460;
+    tl.forEach(l=>{ ctx.fillText(l, W/2, y); y += 120; });
+    ctx.fillStyle = th.sub; ctx.font = `500 46px ${FONT}`;
+    wrapText(ctx, card.body, 840).forEach(l=>{ ctx.fillText(l, W/2, y+30); y += 78; });
+    // 追蹤按鈕
+    const btnTxt = handle ? `＋ 追蹤 ${handle}` : '＋ 追蹤我看更多';
+    ctx.font = `800 46px ${FONT}`;
+    const bw = ctx.measureText(btnTxt).width + 140;
+    ctx.fillStyle = th.accent;
+    roundRect(ctx, W/2-bw/2, y+70, bw, 110, 55); ctx.fill();
+    ctx.fillStyle = th.accentText;
+    ctx.fillText(btnTxt, W/2, y+145);
+    // 底部小字
+    ctx.fillStyle = th.sub; ctx.font = `500 34px ${FONT}`;
+    ctx.fillText('🔖 收藏這篇 ・ 📤 分享給需要的朋友', W/2, H-110);
+
+  } else { /* CONTENT */
+    // 頂部：accent 短槓 + 頁碼
+    ctx.fillStyle = th.accent;
+    roundRect(ctx, 90, 104, 64, 10, 5); ctx.fill();
+    ctx.fillStyle = th.sub; ctx.font = `700 36px ${FONT}`; ctx.textAlign = 'right';
+    ctx.fillText(String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0'), W-90, 122);
+    // 標題
+    ctx.fillStyle = th.text; ctx.font = `900 76px ${FONT}`; ctx.textAlign = 'left';
+    const tl = wrapText(ctx, card.title, 900);
+    let y = 320;
+    tl.forEach(l=>{ ctx.fillText(l, 90, y); y += 104; });
+    // 分隔線
+    ctx.strokeStyle = th.accent; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(90, y-40); ctx.lineTo(240, y-40); ctx.stroke();
+    // 內文
+    ctx.fillStyle = th.text; ctx.font = `500 48px ${FONT}`;
+    y += 60;
+    wrapText(ctx, card.body, 900).forEach(l=>{
+      if(l==='') { y += 40; return; }
+      ctx.fillText(l, 90, y); y += 84;
+    });
+    // 底部：帳號 + 箭頭
+    ctx.fillStyle = th.sub; ctx.font = `600 32px ${FONT}`; ctx.textAlign = 'left';
+    if(handle) ctx.fillText(handle, 90, H-96);
+    if(idx < total-1){
+      ctx.textAlign = 'right'; ctx.fillStyle = th.accent; ctx.font = `800 44px ${FONT}`;
+      ctx.fillText('→', W-90, H-92);
+    }
+  }
+}
+
+/* ================= 輸出區渲染 ================= */
+function typeLabel(t){ return t==='COVER'?'封面':(t==='CTA'?'CTA':'內容'); }
+
+function renderOutput(){
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('captionPre').textContent = caption || '（無）';
+  document.getElementById('hashtagPre').textContent = hashtags || '（無）';
+  document.getElementById('cardCount').textContent = `共 ${cards.length} 張 ・ 1080×1350`;
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = '';
+  cards.forEach((c, i)=>{
+    const item = document.createElement('div');
+    item.className = 'card-item';
+    const cv = document.createElement('canvas');
+    cv.onclick = ()=>openEditModal(i);
+    cv.title = '點擊編輯';
+    item.appendChild(cv);
+    const act = document.createElement('div');
+    act.className = 'card-actions';
+    act.innerHTML = `<span class="card-tag">${String(i+1).padStart(2,'0')} ${typeLabel(c.type)}</span>
+      <span>
+        <button class="btn-ghost btn-sm" onclick="openEditModal(${i})">✏️ 編輯</button>
+        <button class="btn-ghost btn-sm" onclick="downloadCard(${i})">⬇️ PNG</button>
+      </span>`;
+    item.appendChild(act);
+    grid.appendChild(item);
+    drawCard(cv, c, i, cards.length);
+  });
+}
+
+function renderAllCards(){
+  const cvs = document.querySelectorAll('#cardsGrid canvas');
+  cvs.forEach((cv,i)=>drawCard(cv, cards[i], i, cards.length));
+}
+
+/* ================= 編輯 ================= */
+function openEditModal(i){
+  editingIdx = i;
+  document.getElementById('editTitle').textContent = `✏️ 編輯第 ${i+1} 張（${typeLabel(cards[i].type)}）`;
+  document.getElementById('editCardTitle').value = cards[i].title;
+  document.getElementById('editCardBody').value = cards[i].body;
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){ document.getElementById('editModal').classList.remove('open'); editingIdx = -1; }
+function saveCardEdit(){
+  if(editingIdx < 0) return;
+  cards[editingIdx].title = document.getElementById('editCardTitle').value.trim();
+  cards[editingIdx].body = document.getElementById('editCardBody').value.trim();
+  renderAllCards();
+  closeEditModal();
+}
+
+/* ================= 下載 ================= */
+function canvasBlob(i){
+  return new Promise(resolve=>{
+    const cv = document.createElement('canvas');
+    drawCard(cv, cards[i], i, cards.length);
+    cv.toBlob(b=>resolve(b), 'image/png');
+  });
+}
+async function downloadCard(i){
+  const blob = await canvasBlob(i);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ig-carousel-${String(i+1).padStart(2,'0')}.png`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+}
+
+/* --- 極簡 ZIP（store 無壓縮）--- */
+const CRC_TABLE = (()=>{ const t=new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); t[i]=c; } return t; })();
+function crc32(d){ let c=0xFFFFFFFF; for(let i=0;i<d.length;i++) c = CRC_TABLE[(c^d[i])&0xFF] ^ (c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function buildZip(files){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  for(const f of files){
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const lh = new Uint8Array(30 + name.length);
+    const dv = new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true);
+    dv.setUint16(26,name.length,true);
+    lh.set(name,30);
+    parts.push(lh, data);
+    const ch = new Uint8Array(46 + name.length);
+    const cv2 = new DataView(ch.buffer);
+    cv2.setUint32(0,0x02014b50,true); cv2.setUint16(4,20,true); cv2.setUint16(6,20,true); cv2.setUint16(8,0x0800,true);
+    cv2.setUint32(16,crc,true); cv2.setUint32(20,data.length,true); cv2.setUint32(24,data.length,true);
+    cv2.setUint16(28,name.length,true); cv2.setUint32(42,offset,true);
+    ch.set(name,46);
+    central.push(ch);
+    offset += lh.length + data.length;
+  }
+  let cenSize = 0;
+  for(const c of central){ parts.push(c); cenSize += c.length; }
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true); ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cenSize,true); ev.setUint32(16,offset,true);
+  parts.push(eocd);
+  return new Blob(parts, {type:'application/zip'});
+}
+async function downloadAll(){
+  const files = [];
+  for(let i=0;i<cards.length;i++){
+    const blob = await canvasBlob(i);
+    files.push({ name:`ig-carousel-${String(i+1).padStart(2,'0')}.png`, data: new Uint8Array(await blob.arrayBuffer()) });
+  }
+  const txt = `【貼文文案】\n${caption}\n\n【Hashtags】\n${hashtags}\n`;
+  files.push({ name:'caption.txt', data: new TextEncoder().encode(txt) });
+  const zip = buildZip(files);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(zip);
+  a.download = 'ig-carousel.zip';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+}
+
+/* ================= 工具 ================= */
+function copyText(id, btn){
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+    const org = btn.textContent;
+    btn.textContent = '✅ 已複製';
+    setTimeout(()=>btn.textContent = org, 1500);
+  });
+}
+document.getElementById('handleInput').addEventListener('input', ()=>{ if(cards.length) renderAllCards(); });
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); }));
+
+renderThemePicker();
+updateApiBtn();
+</script>
+</body>
+</html>

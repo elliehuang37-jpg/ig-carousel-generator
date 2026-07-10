@@ -191,12 +191,24 @@ main{display:grid;grid-template-columns:360px 1fr;gap:24px;padding:24px 28px;max
       <label>內文（空行分段）</label>
       <textarea id="editCardBody" style="min-height:140px"></textarea>
     </div>
+    <div class="field">
+      <label>配圖（選填）</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn-ghost btn-sm" onclick="document.getElementById('editImgFile').click()">🖼️ 上傳圖片</button>
+        <button class="btn-ghost btn-sm" id="imgRemoveBtn" onclick="removeEditImg()" style="display:none">🗑️ 移除配圖</button>
+        <img id="imgThumb" alt="" style="height:52px;border-radius:8px;display:none;border:1px solid var(--border)">
+      </div>
+      <input type="file" id="editImgFile" accept="image/*" style="display:none">
+      <div class="hint" style="margin-top:8px">封面／CTA 卡：滿版背景＋深色遮罩（文字自動轉白）；內容卡：標題上方圓角圖片區塊。</div>
+    </div>
     <div class="modal-foot">
       <button class="btn-ghost" onclick="closeEditModal()">取消</button>
       <button class="btn-primary" onclick="saveCardEdit()">儲存並重繪</button>
     </div>
   </div>
 </div>
+
+<input type="file" id="quickImgFile" accept="image/*" style="display:none">
 
 <script>
 /* ================= 狀態 ================= */
@@ -211,7 +223,8 @@ const THEMES = [
   {id:'pink',   name:'莫蘭迪粉', bg:['#F6E8E8','#EED9DC'], text:'#4A3338', sub:'#9A7E84', accent:'#C96B7F', accentText:'#FFFFFF', deco:'rgba(201,107,127,.13)'},
   {id:'dark',   name:'黑金質感', bg:['#191920','#101016'], text:'#F2EDE2', sub:'#9A937F', accent:'#D4AF6A', accentText:'#1A1A20', deco:'rgba(212,175,106,.10)'},
   {id:'blue',   name:'霧霾藍', bg:['#E9F0F5','#DCE7EF'], text:'#25333F', sub:'#6C8296', accent:'#4F7DA0', accentText:'#FFFFFF', deco:'rgba(79,125,160,.12)'},
-  {id:'green',  name:'鼠尾草綠', bg:['#ECF1E8','#DFE8D8'], text:'#2E3A2A', sub:'#7C8B72', accent:'#6E8F5E', accentText:'#FFFFFF', deco:'rgba(110,143,94,.13)'}
+  {id:'green',  name:'鼠尾草綠', bg:['#ECF1E8','#DFE8D8'], text:'#2E3A2A', sub:'#7C8B72', accent:'#6E8F5E', accentText:'#FFFFFF', deco:'rgba(110,143,94,.13)'},
+  {id:'purple', name:'薰衣草紫', bg:['#EFE9F6','#E1D6EE'], text:'#392F4C', sub:'#8B7BA6', accent:'#8B6BB8', accentText:'#FFFFFF', deco:'rgba(139,107,184,.12)'}
 ];
 let themeId = localStorage.getItem('igc_theme') || 'cream';
 
@@ -394,21 +407,38 @@ function handleText(){
   return h ? '@' + h.replace(/^@/,'') : '';
 }
 
+function drawImageCover(ctx, img, x, y, w, h){
+  // cover-fit 置中裁切
+  const s = Math.max(w/img.width, h/img.height);
+  const sw = w/s, sh = h/s;
+  ctx.drawImage(img, (img.width-sw)/2, (img.height-sh)/2, sw, sh, x, y, w, h);
+}
+
 function drawCard(canvas, card, idx, total){
   const th = curTheme();
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  drawBase(ctx, th);
   const handle = handleText();
+  const fullImg = !!card.img && card.type !== 'CONTENT'; // 封面/CTA：滿版背景圖＋深色遮罩
+  if(fullImg){
+    drawImageCover(ctx, card.img, 0, 0, W, H);
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'rgba(0,0,0,.32)'); g.addColorStop(.5,'rgba(0,0,0,.38)'); g.addColorStop(1,'rgba(0,0,0,.72)');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  } else {
+    drawBase(ctx, th);
+  }
+  const textC = fullImg ? '#FFFFFF' : th.text;
+  const subC  = fullImg ? 'rgba(255,255,255,.88)' : th.sub;
 
   if(card.type === 'COVER'){
     // 帳號（上中）
     if(handle){
-      ctx.fillStyle = th.sub; ctx.font = `700 34px ${FONT}`;
+      ctx.fillStyle = subC; ctx.font = `700 34px ${FONT}`;
       ctx.textAlign = 'center'; ctx.fillText(handle, W/2, 130);
     }
     // 主標
-    ctx.fillStyle = th.text; ctx.font = `900 100px ${FONT}`; ctx.textAlign = 'center';
+    ctx.fillStyle = textC; ctx.font = `900 100px ${FONT}`; ctx.textAlign = 'center';
     const lines = wrapText(ctx, card.title, 900);
     const lh = 140;
     let y = H/2 - (lines.length-1)*lh/2 - 40;
@@ -418,7 +448,7 @@ function drawCard(canvas, card, idx, total){
     roundRect(ctx, W/2-90, y-90+70, 180, 12, 6); ctx.fill();
     // 副標
     if(card.body){
-      ctx.fillStyle = th.sub; ctx.font = `500 46px ${FONT}`;
+      ctx.fillStyle = subC; ctx.font = `500 46px ${FONT}`;
       wrapText(ctx, card.body, 880).forEach((l,i)=>ctx.fillText(l, W/2, y+80+i*70));
     }
     // 底部滑動提示
@@ -429,14 +459,14 @@ function drawCard(canvas, card, idx, total){
 
   } else if(card.type === 'CTA'){
     if(handle){
-      ctx.fillStyle = th.sub; ctx.font = `700 34px ${FONT}`;
+      ctx.fillStyle = subC; ctx.font = `700 34px ${FONT}`;
       ctx.textAlign = 'center'; ctx.fillText(handle, W/2, 130);
     }
-    ctx.fillStyle = th.text; ctx.font = `900 88px ${FONT}`; ctx.textAlign = 'center';
+    ctx.fillStyle = textC; ctx.font = `900 88px ${FONT}`; ctx.textAlign = 'center';
     const tl = wrapText(ctx, card.title, 900);
     let y = 460;
     tl.forEach(l=>{ ctx.fillText(l, W/2, y); y += 120; });
-    ctx.fillStyle = th.sub; ctx.font = `500 46px ${FONT}`;
+    ctx.fillStyle = subC; ctx.font = `500 46px ${FONT}`;
     wrapText(ctx, card.body, 840).forEach(l=>{ ctx.fillText(l, W/2, y+30); y += 78; });
     // 追蹤按鈕
     const btnTxt = handle ? `＋ 追蹤 ${handle}` : '＋ 追蹤我看更多';
@@ -447,7 +477,7 @@ function drawCard(canvas, card, idx, total){
     ctx.fillStyle = th.accentText;
     ctx.fillText(btnTxt, W/2, y+145);
     // 底部小字
-    ctx.fillStyle = th.sub; ctx.font = `500 34px ${FONT}`;
+    ctx.fillStyle = subC; ctx.font = `500 34px ${FONT}`;
     ctx.fillText('🔖 收藏這篇 ・ 📤 分享給需要的朋友', W/2, H-110);
 
   } else { /* CONTENT */
@@ -456,20 +486,31 @@ function drawCard(canvas, card, idx, total){
     roundRect(ctx, 90, 104, 64, 10, 5); ctx.fill();
     ctx.fillStyle = th.sub; ctx.font = `700 36px ${FONT}`; ctx.textAlign = 'right';
     ctx.fillText(String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0'), W-90, 122);
+    // 配圖：上方圓角圖片區塊，文字區整體下移、字級略縮
+    const hasImg = !!card.img;
+    if(hasImg){
+      const ix = 90, iy = 200, iw = W-180, ih = 470;
+      ctx.save();
+      roundRect(ctx, ix, iy, iw, ih, 28); ctx.clip();
+      drawImageCover(ctx, card.img, ix, iy, iw, ih);
+      ctx.restore();
+    }
     // 標題
-    ctx.fillStyle = th.text; ctx.font = `900 76px ${FONT}`; ctx.textAlign = 'left';
+    ctx.fillStyle = th.text; ctx.font = `900 ${hasImg?64:76}px ${FONT}`; ctx.textAlign = 'left';
     const tl = wrapText(ctx, card.title, 900);
-    let y = 320;
-    tl.forEach(l=>{ ctx.fillText(l, 90, y); y += 104; });
+    let y = hasImg ? 790 : 320;
+    const tlh = hasImg ? 88 : 104;
+    tl.forEach(l=>{ ctx.fillText(l, 90, y); y += tlh; });
     // 分隔線
     ctx.strokeStyle = th.accent; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(90, y-40); ctx.lineTo(240, y-40); ctx.stroke();
     // 內文
-    ctx.fillStyle = th.text; ctx.font = `500 48px ${FONT}`;
-    y += 60;
+    ctx.fillStyle = th.text; ctx.font = `500 ${hasImg?42:48}px ${FONT}`;
+    y += hasImg ? 44 : 60;
+    const blh = hasImg ? 72 : 84;
     wrapText(ctx, card.body, 900).forEach(l=>{
-      if(l==='') { y += 40; return; }
-      ctx.fillText(l, 90, y); y += 84;
+      if(l==='') { y += Math.round(blh/2); return; }
+      ctx.fillText(l, 90, y); y += blh;
     });
     // 底部：帳號 + 箭頭
     ctx.fillStyle = th.sub; ctx.font = `600 32px ${FONT}`; ctx.textAlign = 'left';
@@ -501,8 +542,9 @@ function renderOutput(){
     item.appendChild(cv);
     const act = document.createElement('div');
     act.className = 'card-actions';
-    act.innerHTML = `<span class="card-tag">${String(i+1).padStart(2,'0')} ${typeLabel(c.type)}</span>
+    act.innerHTML = `<span class="card-tag">${String(i+1).padStart(2,'0')} ${typeLabel(c.type)}${c.img?' 🖼️':''}</span>
       <span>
+        <button class="btn-ghost btn-sm" onclick="quickImg(${i})" title="上傳配圖">🖼️</button>
         <button class="btn-ghost btn-sm" onclick="openEditModal(${i})">✏️ 編輯</button>
         <button class="btn-ghost btn-sm" onclick="downloadCard(${i})">⬇️ PNG</button>
       </span>`;
@@ -518,11 +560,22 @@ function renderAllCards(){
 }
 
 /* ================= 編輯 ================= */
+let editImg = null;   // 編輯視窗中暫存的配圖（按儲存才套用）
+let quickIdx = -1;    // 快速配圖的目標卡片
+
+function loadFileAsImage(file, cb){
+  const img = new Image();
+  img.onload = ()=>cb(img);
+  img.src = URL.createObjectURL(file);
+}
+
 function openEditModal(i){
   editingIdx = i;
+  editImg = cards[i].img || null;
   document.getElementById('editTitle').textContent = `✏️ 編輯第 ${i+1} 張（${typeLabel(cards[i].type)}）`;
   document.getElementById('editCardTitle').value = cards[i].title;
   document.getElementById('editCardBody').value = cards[i].body;
+  updateImgUI();
   document.getElementById('editModal').classList.add('open');
 }
 function closeEditModal(){ document.getElementById('editModal').classList.remove('open'); editingIdx = -1; }
@@ -530,9 +583,31 @@ function saveCardEdit(){
   if(editingIdx < 0) return;
   cards[editingIdx].title = document.getElementById('editCardTitle').value.trim();
   cards[editingIdx].body = document.getElementById('editCardBody').value.trim();
-  renderAllCards();
+  cards[editingIdx].img = editImg;
+  renderOutput();
   closeEditModal();
 }
+function updateImgUI(){
+  const thumb = document.getElementById('imgThumb'), rm = document.getElementById('imgRemoveBtn');
+  if(editImg){ thumb.src = editImg.src; thumb.style.display = 'block'; rm.style.display = 'inline-block'; }
+  else { thumb.style.display = 'none'; rm.style.display = 'none'; }
+}
+function removeEditImg(){ editImg = null; updateImgUI(); }
+document.getElementById('editImgFile').addEventListener('change', e=>{
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  loadFileAsImage(f, img=>{ editImg = img; updateImgUI(); });
+});
+function quickImg(i){
+  quickIdx = i;
+  document.getElementById('quickImgFile').click();
+}
+document.getElementById('quickImgFile').addEventListener('change', e=>{
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f || quickIdx < 0) return;
+  const i = quickIdx; quickIdx = -1;
+  loadFileAsImage(f, img=>{ cards[i].img = img; renderOutput(); });
+});
 
 /* ================= 下載 ================= */
 function canvasBlob(i){

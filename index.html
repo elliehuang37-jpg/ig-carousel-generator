@@ -184,10 +184,14 @@ main{display:grid;grid-template-columns:360px 1fr;gap:24px;padding:26px 32px;max
     <div class="field">
       <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px">
     </div>
-    <div class="hint">至 <strong>console.anthropic.com</strong> 建立 Key，只存在你瀏覽器的 localStorage，不會上傳到任何伺服器。</div>
+    <div class="hint">
+      取得步驟：至 <strong>console.anthropic.com</strong> 註冊登入 → 左側「API Keys」→「Create Key」→ 複製貼到上方（以 <strong>sk-ant-</strong> 開頭）。<br>
+      帳戶需有餘額（Billing 頁儲值，最低 US$5）。Key 只存在你瀏覽器的 localStorage，不會上傳到任何伺服器。
+    </div>
+    <div id="apiKeyStatus" style="font-size:13px;font-weight:700;margin-top:10px;min-height:18px"></div>
     <div class="modal-foot">
       <button class="btn-ghost" onclick="closeApiModal()">取消</button>
-      <button class="btn-primary" onclick="saveApiKey()">儲存</button>
+      <button class="btn-primary" id="apiSaveBtn" onclick="saveApiKey()">驗證並儲存</button>
     </div>
   </div>
 </div>
@@ -258,12 +262,60 @@ function renderThemePicker(){
 function curTheme(){ return THEMES.find(t=>t.id===themeId) || THEMES[0]; }
 
 /* ================= API Key ================= */
-function openApiModal(){ document.getElementById('apiModal').classList.add('open'); document.getElementById('apiKeyInput').value = apiKey; setTimeout(()=>document.getElementById('apiKeyInput').focus(),80); }
+function openApiModal(){
+  document.getElementById('apiModal').classList.add('open');
+  document.getElementById('apiKeyInput').value = apiKey;
+  setApiKeyStatus('', '');
+  setTimeout(()=>document.getElementById('apiKeyInput').focus(),80);
+}
 function closeApiModal(){ document.getElementById('apiModal').classList.remove('open'); }
-function saveApiKey(){
-  apiKey = document.getElementById('apiKeyInput').value.trim();
-  localStorage.setItem('aak', apiKey);
-  updateApiBtn(); closeApiModal();
+function setApiKeyStatus(msg, color){
+  const el = document.getElementById('apiKeyStatus');
+  el.textContent = msg;
+  el.style.color = color || 'var(--muted)';
+}
+async function saveApiKey(){
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if(!v){ setApiKeyStatus('⚠️ 欄位是空的，請先貼上 API Key 再按儲存', 'var(--err)'); return; }
+  if(!v.startsWith('sk-ant-')){ setApiKeyStatus('⚠️ 格式不對：Key 應以 sk-ant- 開頭，請確認是從 console.anthropic.com 複製的 API Key', 'var(--err)'); return; }
+  const btn = document.getElementById('apiSaveBtn');
+  btn.disabled = true;
+  setApiKeyStatus('🔄 驗證中，請稍候…', 'var(--gold)');
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key': v,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1, messages:[{role:'user', content:'hi'}] })
+    });
+    if(res.status === 401){
+      setApiKeyStatus('❌ 這組 Key 無效或已被停用，請回 console.anthropic.com 確認或重新建立', 'var(--err)');
+      return;
+    }
+    if(!res.ok){
+      const e = await res.json().catch(()=>({}));
+      const msg = (e.error && e.error.message) || ('HTTP ' + res.status);
+      apiKey = v; localStorage.setItem('aak', v); updateApiBtn();
+      if(/credit|billing/i.test(msg)){
+        setApiKeyStatus('⚠️ Key 正確，但帳戶餘額不足：請至 console.anthropic.com 的 Billing 頁儲值後即可使用', 'var(--err)');
+      } else {
+        setApiKeyStatus('⚠️ Key 已儲存，但 API 回應：' + msg, 'var(--err)');
+      }
+      return;
+    }
+    apiKey = v; localStorage.setItem('aak', v); updateApiBtn();
+    setApiKeyStatus('✅ 驗證成功！', 'var(--ok)');
+    setStatus('✅ API Key 已設定，可以開始生成', 'ok');
+    setTimeout(closeApiModal, 700);
+  }catch(err){
+    setApiKeyStatus('❌ 無法連線到 Anthropic API，請檢查網路：' + err.message, 'var(--err)');
+  }finally{
+    btn.disabled = false;
+  }
 }
 function updateApiBtn(){ document.getElementById('apiBtn').textContent = apiKey ? '🔑 API Key ✓' : '🔑 API Key'; }
 
@@ -348,7 +400,11 @@ function setStatus(msg, cls){ const s=document.getElementById('status'); s.textC
 async function generate(){
   const topic = document.getElementById('topicInput').value.trim();
   if(!topic){ setStatus('請先輸入貼文主題', 'err'); return; }
-  if(!apiKey){ openApiModal(); return; }
+  if(!apiKey){
+    setStatus('⚠️ 還沒設定 API Key：AI 生成需要它。請在跳出的視窗貼上 Key 並按「驗證並儲存」', 'err');
+    openApiModal();
+    return;
+  }
   const btn = document.getElementById('genBtn');
   btn.disabled = true;
   setStatus('AI 生成中…約需 10~30 秒', 'busy');

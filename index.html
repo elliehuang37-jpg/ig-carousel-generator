@@ -6,60 +6,64 @@
 <title>IG 輪播貼文生成器</title>
 <style>
 :root{
-  --bg:#0f1117; --panel:#181b24; --panel2:#1f2330; --border:#2a2f3f;
-  --text:#e8eaf2; --muted:#8b91a5; --accent:#e1548a; --accent2:#f0a05e;
-  --ok:#4cc38a; --err:#ef6a6a; --radius:14px;
+  --bg:#FBF6EE; --panel:#FFFFFF; --panel2:#FCF9F3; --border:#EADDCB;
+  --text:#33284E; --muted:#8E7C9F; --accent:#D4569E; --accent2:#7C5CBF;
+  --coral:#F0806B; --gold:#C9A227; --dark:#251C40; --dark2:#2F2452;
+  --ok:#3E8E5A; --err:#C94F4F; --radius:16px;
+  --serif:"Noto Serif TC","PMingLiU","Times New Roman",serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;min-height:100vh}
 a{color:var(--accent)}
-header{display:flex;align-items:center;gap:14px;padding:18px 28px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-header h1{font-size:20px;font-weight:900;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-header .sub{font-size:12px;color:var(--muted)}
+header{display:flex;align-items:center;gap:16px;padding:20px 32px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:linear-gradient(180deg,#FDFAF4,var(--bg))}
+.brand .overline{font-size:11px;letter-spacing:2.5px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.brand h1{font-size:26px;font-weight:900;font-family:var(--serif);line-height:1.2;background:linear-gradient(90deg,#443368 0%,var(--accent) 60%,var(--accent2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .sub{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:13px;margin-top:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .spacer{flex:1}
 select,input,textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;width:100%}
-select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+select:focus,input:focus,textarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(124,92,191,.12)}
 textarea{resize:vertical;min-height:90px;line-height:1.6}
-button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;font-family:inherit;transition:.15s}
-.btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
-.btn-primary:hover{filter:brightness(1.1)}
-.btn-primary:disabled{opacity:.45;cursor:not-allowed}
-.btn-ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--accent)}
-.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
-main{display:grid;grid-template-columns:360px 1fr;gap:24px;padding:24px 28px;max-width:1500px;margin:0 auto}
+button{cursor:pointer;border:none;border-radius:24px;padding:10px 18px;font-size:14px;font-weight:700;font-family:inherit;transition:.15s}
+.btn-primary{background:linear-gradient(90deg,var(--coral),var(--accent) 60%,var(--accent2));color:#fff;box-shadow:0 6px 18px rgba(212,86,158,.28)}
+.btn-primary:hover{filter:brightness(1.06);box-shadow:0 8px 24px rgba(212,86,158,.4)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn-ghost{background:#fff;color:var(--text);border:1px solid #E2D3E2}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:6px 12px;font-size:12px}
+main{display:grid;grid-template-columns:360px 1fr;gap:24px;padding:26px 32px;max-width:1500px;margin:0 auto}
 @media(max-width:980px){main{grid-template-columns:1fr}}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:0 14px 36px rgba(90,70,130,.08)}
 .field{margin-bottom:16px}
-.field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.field label{display:block;font-size:12px;font-weight:800;letter-spacing:1.5px;color:var(--accent);margin-bottom:6px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .themes{display:flex;gap:10px;flex-wrap:wrap}
-.theme-chip{width:56px;height:56px;border-radius:12px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}
-.theme-chip.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(225,84,138,.3)}
+.theme-chip{width:56px;height:56px;border-radius:12px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(90,70,130,.10)}
+.theme-chip.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,86,158,.25)}
 .theme-chip span{position:absolute;bottom:2px;left:0;right:0;font-size:9px;text-align:center;font-weight:700}
 .theme-chip canvas{position:absolute;inset:0;width:100%;height:100%}
 .theme-chip span.on-canvas{z-index:1;text-shadow:0 0 4px rgba(255,255,255,.8)}
 #genBtn{width:100%;padding:14px;font-size:16px;margin-top:4px}
-.hint{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
-#status{font-size:13px;margin-top:12px;min-height:20px}
-#status.err{color:var(--err)} #status.ok{color:var(--ok)} #status.busy{color:var(--accent2)}
+.hint{font-size:12px;color:var(--muted);line-height:1.7;margin-top:10px}
+#status{font-size:13px;margin-top:12px;min-height:20px;font-weight:700}
+#status.err{color:var(--err)} #status.ok{color:var(--ok)} #status.busy{color:var(--gold)}
 /* output */
 #output{display:none}
 .out-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
 .cards-grid{display:flex;gap:16px;flex-wrap:wrap}
-.card-item{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px;width:262px}
-.card-item canvas{width:240px;height:300px;border-radius:8px;display:block;cursor:pointer}
+.card-item{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px;width:262px;box-shadow:0 10px 26px rgba(90,70,130,.09)}
+.card-item canvas{width:240px;height:300px;border-radius:10px;display:block;cursor:pointer}
 .card-item canvas:hover{outline:2px solid var(--accent)}
 .card-actions{display:flex;gap:6px;margin-top:8px;justify-content:space-between;align-items:center}
-.card-tag{font-size:11px;color:var(--muted);font-weight:700}
-.copy-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:20px}
-.copy-box h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
-.copy-box pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.8;color:var(--text);background:var(--panel2);border-radius:10px;padding:14px;max-height:260px;overflow-y:auto}
+.card-tag{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px}
+.copy-box{background:var(--dark);border-radius:var(--radius);padding:18px;margin-top:20px;position:relative;overflow:hidden;box-shadow:0 14px 36px rgba(37,28,64,.25)}
+.copy-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--accent),var(--accent2))}
+.copy-box h3{font-size:13px;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:10px;color:var(--gold);font-weight:800}
+.copy-box pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.8;color:#F0EAF8;background:var(--dark2);border-radius:10px;padding:14px;max-height:260px;overflow-y:auto}
 /* modal */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-bg{position:fixed;inset:0;background:rgba(37,28,64,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
 .modal-bg.open{display:flex}
-.modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:min(520px,100%);max-height:90vh;overflow-y:auto}
-.modal h3{margin-bottom:16px;font-size:16px}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:min(520px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(37,28,64,.28)}
+.modal h3{margin-bottom:16px;font-size:16px;font-family:var(--serif)}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
 .empty{color:var(--muted);text-align:center;padding:80px 20px;font-size:15px;line-height:2}
 .empty .big{font-size:44px}
@@ -68,8 +72,11 @@ main{display:grid;grid-template-columns:360px 1fr;gap:24px;padding:24px 28px;max
 <body>
 
 <header>
-  <h1>📱 IG 輪播貼文生成器</h1>
-  <span class="sub">輸入主題 → AI 生成文案 → 1080×1350 字卡直接下載發文</span>
+  <div class="brand">
+    <div class="overline">—— 個人品牌 × AI 內容工作流</div>
+    <h1>IG 輪播貼文生成器</h1>
+    <div class="sub">Personal Branding Content Studio, by Ellie Huang</div>
+  </div>
   <div class="spacer"></div>
   <select id="modelSel" style="width:auto">
     <option value="claude-haiku-4-5-20251001">Haiku（快速）</option>
@@ -225,6 +232,7 @@ let editingIdx = -1;
 
 /* ================= 視覺主題 ================= */
 const THEMES = [
+  {id:'aurora', name:'品牌極光', bg:['#FBF5EC','#F3E7F1'], text:'#3A2D5C', sub:'#9C7FA6', accent:'#D4569E', accent2:'#7C5CBF', accentText:'#FFFFFF', deco:'rgba(212,86,158,.10)'},
   {id:'cream',  name:'奶油杏', bg:['#F7F1E8','#F2E6D8'], text:'#3D3229', sub:'#8A7A6A', accent:'#C8794F', accentText:'#FFFFFF', deco:'rgba(200,121,79,.12)'},
   {id:'pink',   name:'莫蘭迪粉', bg:['#F6E8E8','#EED9DC'], text:'#4A3338', sub:'#9A7E84', accent:'#C96B7F', accentText:'#FFFFFF', deco:'rgba(201,107,127,.13)'},
   {id:'dark',   name:'黑金質感', bg:['#191920','#101016'], text:'#F2EDE2', sub:'#9A937F', accent:'#D4AF6A', accentText:'#1A1A20', deco:'rgba(212,175,106,.10)'},
@@ -232,7 +240,7 @@ const THEMES = [
   {id:'green',  name:'鼠尾草綠', bg:['#ECF1E8','#DFE8D8'], text:'#2E3A2A', sub:'#7C8B72', accent:'#6E8F5E', accentText:'#FFFFFF', deco:'rgba(110,143,94,.13)'},
   {id:'purple', name:'薰衣草紫', bg:['#EFE9F6','#E1D6EE'], text:'#392F4C', sub:'#8B7BA6', accent:'#8B6BB8', accentText:'#FFFFFF', deco:'rgba(139,107,184,.12)'}
 ];
-let themeId = localStorage.getItem('igc_theme') || 'cream';
+let themeId = localStorage.getItem('igc_theme') || 'aurora';
 
 function renderThemePicker(){
   const el = document.getElementById('themePicker');
@@ -422,9 +430,10 @@ const BG_STYLES = [
     ctx.beginPath(); ctx.arc(60, H-120, 280, 0, Math.PI*2); ctx.fill();
   }},
   {id:'glow', name:'光暈', draw(ctx, th){
-    [[W*.88,H*.10,460,.20],[W*.06,H*.38,380,.14],[W*.80,H*.88,520,.18],[W*.12,H*.98,340,.12]].forEach(([x,y,r,a])=>{
+    [[W*.88,H*.10,460,.20],[W*.06,H*.38,380,.14],[W*.80,H*.88,520,.18],[W*.12,H*.98,340,.12]].forEach(([x,y,r,a],i)=>{
+      const col = (i%2 && th.accent2) ? th.accent2 : th.accent;
       const g = ctx.createRadialGradient(x,y,0,x,y,r);
-      g.addColorStop(0, rgba(th.accent,a)); g.addColorStop(1, rgba(th.accent,0));
+      g.addColorStop(0, rgba(col,a)); g.addColorStop(1, rgba(col,0));
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
     });
   }},
@@ -432,7 +441,8 @@ const BG_STYLES = [
     const rnd = mulberry32(7);
     for(let i=0;i<14;i++){
       const x = rnd()*W, y = rnd()*H, s = 40+rnd()*110, k = i%4;
-      ctx.fillStyle = ctx.strokeStyle = rgba(th.accent, .06+rnd()*.07);
+      const col = (i%2 && th.accent2) ? th.accent2 : th.accent;
+      ctx.fillStyle = ctx.strokeStyle = rgba(col, .06+rnd()*.07);
       ctx.lineWidth = 10;
       if(k===0){ ctx.beginPath(); ctx.arc(x,y,s*.6,0,Math.PI*2); ctx.fill(); }
       else if(k===1){ ctx.beginPath(); ctx.arc(x,y,s*.6,0,Math.PI*2); ctx.stroke(); }
@@ -447,7 +457,7 @@ const BG_STYLES = [
       ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
     };
     ctx.fillStyle = rgba(th.accent,.08); wavePath(H-300, 60, 1.6, 0);
-    ctx.fillStyle = rgba(th.accent,.10); wavePath(H-200, 50, 1.3, 2);
+    ctx.fillStyle = rgba(th.accent2||th.accent,.10); wavePath(H-200, 50, 1.3, 2);
     ctx.fillStyle = rgba(th.accent,.13); wavePath(H-110, 40, 1.8, 4);
     // 頂部一道反向淡波
     ctx.save(); ctx.translate(W, 180); ctx.rotate(Math.PI);
@@ -499,6 +509,14 @@ function handleText(){
   return h ? '@' + h.replace(/^@/,'') : '';
 }
 
+function accentPaint(ctx, th, x0, x1){
+  // 主題有 accent2 時回傳水平漸層，否則單色
+  if(!th.accent2) return th.accent;
+  const g = ctx.createLinearGradient(x0, 0, x1, 0);
+  g.addColorStop(0, th.accent); g.addColorStop(1, th.accent2);
+  return g;
+}
+
 function drawImageCover(ctx, img, x, y, w, h){
   // cover-fit 置中裁切
   const s = Math.max(w/img.width, h/img.height);
@@ -536,7 +554,7 @@ function drawCard(canvas, card, idx, total){
     let y = H/2 - (lines.length-1)*lh/2 - 40;
     lines.forEach(l=>{ ctx.fillText(l, W/2, y); y += lh; });
     // 強調底線
-    ctx.fillStyle = th.accent;
+    ctx.fillStyle = accentPaint(ctx, th, W/2-90, W/2+90);
     roundRect(ctx, W/2-90, y-90+70, 180, 12, 6); ctx.fill();
     // 副標
     if(card.body){
@@ -544,7 +562,7 @@ function drawCard(canvas, card, idx, total){
       wrapText(ctx, card.body, 880).forEach((l,i)=>ctx.fillText(l, W/2, y+80+i*70));
     }
     // 底部滑動提示
-    ctx.fillStyle = th.accent;
+    ctx.fillStyle = accentPaint(ctx, th, W/2-160, W/2+160);
     roundRect(ctx, W/2-160, H-170, 320, 84, 42); ctx.fill();
     ctx.fillStyle = th.accentText; ctx.font = `700 38px ${FONT}`;
     ctx.fillText('往左滑 →', W/2, H-114);
@@ -564,7 +582,7 @@ function drawCard(canvas, card, idx, total){
     const btnTxt = handle ? `＋ 追蹤 ${handle}` : '＋ 追蹤我看更多';
     ctx.font = `800 46px ${FONT}`;
     const bw = ctx.measureText(btnTxt).width + 140;
-    ctx.fillStyle = th.accent;
+    ctx.fillStyle = accentPaint(ctx, th, W/2-bw/2, W/2+bw/2);
     roundRect(ctx, W/2-bw/2, y+70, bw, 110, 55); ctx.fill();
     ctx.fillStyle = th.accentText;
     ctx.fillText(btnTxt, W/2, y+145);
@@ -574,7 +592,7 @@ function drawCard(canvas, card, idx, total){
 
   } else { /* CONTENT */
     // 頂部：accent 短槓 + 頁碼
-    ctx.fillStyle = th.accent;
+    ctx.fillStyle = accentPaint(ctx, th, 90, 154);
     roundRect(ctx, 90, 104, 64, 10, 5); ctx.fill();
     ctx.fillStyle = th.sub; ctx.font = `700 36px ${FONT}`; ctx.textAlign = 'right';
     ctx.fillText(String(idx+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0'), W-90, 122);
@@ -594,7 +612,7 @@ function drawCard(canvas, card, idx, total){
     const tlh = hasImg ? 88 : 104;
     tl.forEach(l=>{ ctx.fillText(l, 90, y); y += tlh; });
     // 分隔線
-    ctx.strokeStyle = th.accent; ctx.lineWidth = 4;
+    ctx.strokeStyle = accentPaint(ctx, th, 90, 240); ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(90, y-40); ctx.lineTo(240, y-40); ctx.stroke();
     // 內文
     ctx.fillStyle = th.text; ctx.font = `500 ${hasImg?42:48}px ${FONT}`;
